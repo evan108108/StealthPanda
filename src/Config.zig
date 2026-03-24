@@ -156,6 +156,13 @@ pub fn userAgentSuffix(self: *const Config) ?[]const u8 {
     };
 }
 
+pub fn userAgentOverride(self: *const Config) ?[:0]const u8 {
+    return switch (self.mode) {
+        inline .serve, .fetch, .mcp => |opts| opts.common.user_agent_override,
+        .help, .version => null,
+    };
+}
+
 pub fn cdpTimeout(self: *const Config) usize {
     return switch (self.mode) {
         .serve => |opts| if (opts.timeout > 604_800) 604_800_000 else @as(usize, opts.timeout) * 1000,
@@ -264,6 +271,7 @@ pub const Common = struct {
     log_format: ?log.Format = null,
     log_filter_scopes: ?[]log.Scope = null,
     user_agent_suffix: ?[]const u8 = null,
+    user_agent_override: ?[:0]const u8 = null,
 
     web_bot_auth_key_file: ?[]const u8 = null,
     web_bot_auth_keyid: ?[]const u8 = null,
@@ -277,15 +285,19 @@ pub const HttpHeaders = struct {
 
     user_agent: [:0]const u8, // User agent value (e.g. "Lightpanda/1.0")
     user_agent_header: [:0]const u8,
+    user_agent_allocated: bool, // true if user_agent was allocated by HttpHeaders
 
     proxy_bearer_header: ?[:0]const u8,
 
     pub fn init(allocator: Allocator, config: *const Config) !HttpHeaders {
-        const user_agent: [:0]const u8 = if (config.userAgentSuffix()) |suffix|
+        const ua_allocated = config.userAgentOverride() == null and config.userAgentSuffix() != null;
+        const user_agent: [:0]const u8 = if (config.userAgentOverride()) |override|
+            override
+        else if (config.userAgentSuffix()) |suffix|
             try std.fmt.allocPrintSentinel(allocator, "{s} {s}", .{ user_agent_base, suffix }, 0)
         else
             user_agent_base;
-        errdefer if (config.userAgentSuffix() != null) allocator.free(user_agent);
+        errdefer if (ua_allocated) allocator.free(user_agent);
 
         const user_agent_header = try std.fmt.allocPrintSentinel(allocator, "User-Agent: {s}", .{user_agent}, 0);
         errdefer allocator.free(user_agent_header);
@@ -298,6 +310,7 @@ pub const HttpHeaders = struct {
         return .{
             .user_agent = user_agent,
             .user_agent_header = user_agent_header,
+            .user_agent_allocated = ua_allocated,
             .proxy_bearer_header = proxy_bearer_header,
         };
     }
@@ -307,7 +320,7 @@ pub const HttpHeaders = struct {
             allocator.free(hdr);
         }
         allocator.free(self.user_agent_header);
-        if (self.user_agent.ptr != user_agent_base.ptr) {
+        if (self.user_agent_allocated) {
             allocator.free(self.user_agent);
         }
     }
@@ -374,6 +387,9 @@ pub fn printUsageAndExit(self: *const Config, success: bool) void {
         \\
         \\--user-agent-suffix
         \\                Suffix to append to the Lightpanda/X.Y User-Agent
+        \\
+        \\--user-agent
+        \\                Override the entire User-Agent string (replaces default)
         \\
         \\--web-bot-auth-key-file
         \\                Path to the Ed25519 private key PEM file.
@@ -950,6 +966,21 @@ fn parseCommonArg(
             }
         }
         common.user_agent_suffix = try allocator.dupe(u8, str);
+        return true;
+    }
+
+    if (std.mem.eql(u8, "--user-agent", opt) or std.mem.eql(u8, "--user_agent", opt)) {
+        const str = args.next() orelse {
+            log.fatal(.app, "missing argument value", .{ .arg = opt });
+            return error.InvalidArgument;
+        };
+        for (str) |c| {
+            if (!std.ascii.isPrint(c)) {
+                log.fatal(.app, "not printable character", .{ .arg = opt });
+                return error.InvalidArgument;
+            }
+        }
+        common.user_agent_override = try allocator.dupeZ(u8, str);
         return true;
     }
 
