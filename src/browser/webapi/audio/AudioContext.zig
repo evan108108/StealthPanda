@@ -23,6 +23,7 @@ const OscillatorNode = @import("OscillatorNode.zig");
 const DynamicsCompressorNode = @import("DynamicsCompressorNode.zig");
 const GainNode = @import("GainNode.zig");
 const AnalyserNode = @import("AnalyserNode.zig");
+const AudioBufferSourceNode = @import("AudioBufferSourceNode.zig");
 
 const AudioContext = @This();
 
@@ -68,6 +69,10 @@ pub fn createAnalyser(_: *AudioContext, page: *Page) !*AnalyserNode {
     return page._factory.create(AnalyserNode{});
 }
 
+pub fn createBufferSource(_: *AudioContext, page: *Page) !*AudioBufferSourceNode {
+    return page._factory.create(AudioBufferSourceNode{});
+}
+
 // resume() → Promise<void> (resolve immediately)
 pub fn @"resume"(self: *AudioContext, page: *Page) !js.Promise {
     self._state = "running";
@@ -97,6 +102,7 @@ pub const JsApi = struct {
     pub const createDynamicsCompressor = bridge.function(AudioContext.createDynamicsCompressor, .{});
     pub const createGain = bridge.function(AudioContext.createGain, .{});
     pub const createAnalyser = bridge.function(AudioContext.createAnalyser, .{});
+    pub const createBufferSource = bridge.function(AudioContext.createBufferSource, .{});
     pub const @"resume" = bridge.function(AudioContext.@"resume", .{ .dom_exception = true });
     pub const close = bridge.function(AudioContext.close, .{ .dom_exception = true });
 };

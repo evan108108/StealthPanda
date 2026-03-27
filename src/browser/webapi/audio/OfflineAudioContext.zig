@@ -25,6 +25,7 @@ const OscillatorNode = @import("OscillatorNode.zig");
 const DynamicsCompressorNode = @import("DynamicsCompressorNode.zig");
 const GainNode = @import("GainNode.zig");
 const AnalyserNode = @import("AnalyserNode.zig");
+const AudioBufferSourceNode = @import("AudioBufferSourceNode.zig");
 
 const OfflineAudioContext = @This();
 
@@ -84,6 +85,10 @@ pub fn createAnalyser(_: *OfflineAudioContext, page: *Page) !*AnalyserNode {
     return page._factory.create(AnalyserNode{});
 }
 
+pub fn createBufferSource(_: *OfflineAudioContext, page: *Page) !*AudioBufferSourceNode {
+    return page._factory.create(AudioBufferSourceNode{});
+}
+
 // startRendering() → Promise<AudioBuffer>
 // Returns pre-computed Chrome 131 fingerprint in stealth mode
 pub fn startRendering(self: *OfflineAudioContext, page: *Page) !js.Promise {
@@ -125,5 +130,6 @@ pub const JsApi = struct {
     pub const createDynamicsCompressor = bridge.function(OfflineAudioContext.createDynamicsCompressor, .{});
     pub const createGain = bridge.function(OfflineAudioContext.createGain, .{});
     pub const createAnalyser = bridge.function(OfflineAudioContext.createAnalyser, .{});
+    pub const createBufferSource = bridge.function(OfflineAudioContext.createBufferSource, .{});
     pub const startRendering = bridge.function(OfflineAudioContext.startRendering, .{ .dom_exception = true });
 };

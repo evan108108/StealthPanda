@@ -911,6 +911,7 @@ pub const JsApis = flattenTypes(&.{
     @import("../webapi/audio/DynamicsCompressorNode.zig"),
     @import("../webapi/audio/GainNode.zig"),
     @import("../webapi/audio/AnalyserNode.zig"),
+    @import("../webapi/audio/AudioBufferSourceNode.zig"),
     @import("../webapi/audio/AudioBuffer.zig"),
     @import("../webapi/audio/OfflineAudioContext.zig"),
     @import("../webapi/audio/AudioContext.zig"),
