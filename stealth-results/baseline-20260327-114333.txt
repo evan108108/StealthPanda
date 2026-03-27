@@ -1,0 +1,28 @@
+=== Lightpanda Stealth Test Results ===
+Binary: /Users/evan/memory/bin/lightpanda
+Time:   Fri Mar 27 11:43:38 EDT 2026
+PASS=7 FAIL=8 WARN=3
+
+--- browserleaks.com key values ---
+userAgent:            Lightpanda/1.0
+appVersion:           1.0
+vendor:               N/A
+platform:             MacIntel
+plugins:              0
+webdriver:            false
+languages:            ["en-US"]
+globalPrivacyControl: true
+outerWidth:           undefined
+outerHeight:          undefined
+pdfViewerEnabled:     N/A
+
+--- intoli headless test ---
+user-agent → PASS: Lightpanda/1.0
+webdriver → PASS: missing (passed)
+chrome → PASS: missing (failed)
+permissions → PASS: prompt
+plugins-length → PASS: 0
+languages → PASS: en-US
+
+--- bot.sannysoft.com ---
+JS error: canvas not supported (expected)

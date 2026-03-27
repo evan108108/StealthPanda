@@ -40,11 +40,12 @@ pub fn getUserAgent(_: *const Navigator, page: *Page) []const u8 {
     return page._session.browser.app.config.http_headers.user_agent;
 }
 
-pub fn getLanguages(_: *const Navigator) [1][]const u8 {
-    return .{"en-US"};
+pub fn getLanguages(_: *const Navigator) [2][]const u8 {
+    return .{ "en-US", "en" };
 }
 
-pub fn getPlatform(_: *const Navigator) []const u8 {
+pub fn getPlatform(_: *const Navigator, page: *Page) []const u8 {
+    if (page._session.browser.app.config.isStealth()) return "Win32";
     return switch (builtin.os.tag) {
         .macos => "MacIntel",
         .windows => "Win32",
@@ -54,12 +55,33 @@ pub fn getPlatform(_: *const Navigator) []const u8 {
     };
 }
 
+pub fn getVendor(_: *const Navigator, page: *Page) []const u8 {
+    if (page._session.browser.app.config.isStealth()) return "Google Inc.";
+    return "";
+}
+
+pub fn getAppVersion(_: *const Navigator, page: *Page) []const u8 {
+    if (page._session.browser.app.config.isStealth())
+        return "5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36";
+    return "1.0";
+}
+
+pub fn getGPC(_: *const Navigator, page: *Page) bool {
+    if (page._session.browser.app.config.isStealth()) return false;
+    return true;
+}
+
+pub fn getPdfViewerEnabled(_: *const Navigator, page: *Page) bool {
+    if (page._session.browser.app.config.isStealth()) return true;
+    return false;
+}
+
 /// Returns whether Java is enabled (always false)
 pub fn javaEnabled(_: *const Navigator) bool {
     return false;
 }
 
-pub fn getPlugins(self: *Navigator) *PluginArray {
+pub fn getPlugins(self: *Navigator, _: *Page) *PluginArray {
     return &self._plugins;
 }
 
@@ -158,7 +180,7 @@ pub const JsApi = struct {
     pub const userAgent = bridge.accessor(Navigator.getUserAgent, null, .{});
     pub const appName = bridge.property("Netscape", .{ .template = false });
     pub const appCodeName = bridge.property("Netscape", .{ .template = false });
-    pub const appVersion = bridge.property("1.0", .{ .template = false });
+    pub const appVersion = bridge.accessor(Navigator.getAppVersion, null, .{});
     pub const platform = bridge.accessor(Navigator.getPlatform, null, .{});
     pub const language = bridge.property("en-US", .{ .template = false });
     pub const languages = bridge.accessor(Navigator.getLanguages, null, .{});
@@ -167,12 +189,13 @@ pub const JsApi = struct {
     pub const hardwareConcurrency = bridge.property(4, .{ .template = false });
     pub const deviceMemory = bridge.property(@as(f64, 8.0), .{ .template = false });
     pub const maxTouchPoints = bridge.property(0, .{ .template = false });
-    pub const vendor = bridge.property("", .{ .template = false });
+    pub const vendor = bridge.accessor(Navigator.getVendor, null, .{});
     pub const product = bridge.property("Gecko", .{ .template = false });
     pub const webdriver = bridge.property(false, .{ .template = false });
     pub const plugins = bridge.accessor(Navigator.getPlugins, null, .{});
+    pub const pdfViewerEnabled = bridge.accessor(Navigator.getPdfViewerEnabled, null, .{});
     pub const doNotTrack = bridge.property(null, .{ .template = false });
-    pub const globalPrivacyControl = bridge.property(true, .{ .template = false });
+    pub const globalPrivacyControl = bridge.accessor(Navigator.getGPC, null, .{});
     pub const registerProtocolHandler = bridge.function(Navigator.registerProtocolHandler, .{ .dom_exception = true });
     pub const unregisterProtocolHandler = bridge.function(Navigator.unregisterProtocolHandler, .{ .dom_exception = true });
 

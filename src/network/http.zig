@@ -465,10 +465,31 @@ pub const Connection = struct {
         }
     }
 
+    /// Append Chrome-standard headers when stealth mode is enabled.
+    /// These make the request look like it comes from Chrome 131 on Windows,
+    /// matching the User-Agent set by Config.HttpHeaders.init() in stealth mode.
+    pub fn stealthHeaders(_: *const Connection, headers: *Headers, http_headers: *const Config.HttpHeaders) !void {
+        if (!http_headers.stealth) return;
+
+        // Client Hints (checked by Cloudflare, DataDome at network edge)
+        try headers.add("Sec-CH-UA: \"Chromium\";v=\"131\", \"Google Chrome\";v=\"131\", \"Not_A Brand\";v=\"24\"");
+        try headers.add("Sec-CH-UA-Mobile: ?0");
+        try headers.add("Sec-CH-UA-Platform: \"Windows\"");
+        try headers.add("Accept-Language: en-US,en;q=0.9");
+
+        // Sec-Fetch headers (navigation context)
+        try headers.add("Sec-Fetch-Site: none");
+        try headers.add("Sec-Fetch-Mode: navigate");
+        try headers.add("Sec-Fetch-Dest: document");
+        try headers.add("Sec-Fetch-User: ?1");
+        try headers.add("Upgrade-Insecure-Requests: 1");
+    }
+
     pub fn request(self: *const Connection, http_headers: *const Config.HttpHeaders) !u16 {
         var header_list = try Headers.init(http_headers.user_agent_header);
         defer header_list.deinit();
         try self.secretHeaders(&header_list, http_headers);
+        try self.stealthHeaders(&header_list, http_headers);
         try self.setHeaders(&header_list);
 
         // Add cookies.

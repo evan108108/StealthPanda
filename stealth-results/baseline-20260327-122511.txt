@@ -1,0 +1,28 @@
+=== Lightpanda Stealth Test Results ===
+Binary: /Users/evan/projects/browser/zig-out/bin/lightpanda
+Time:   Fri Mar 27 12:25:13 EDT 2026
+PASS=0 FAIL=0 WARN=1
+
+--- browserleaks.com key values ---
+userAgent:            N/A
+appVersion:           N/A
+vendor:               N/A
+platform:             N/A
+plugins:              N/A
+webdriver:            N/A
+languages:            N/A
+globalPrivacyControl: N/A
+outerWidth:           N/A
+outerHeight:          N/A
+pdfViewerEnabled:     N/A
+
+--- intoli headless test ---
+user-agent → PASS: 
+webdriver → PASS: 
+chrome → PASS: 
+permissions → PASS: 
+plugins-length → PASS: 
+languages → PASS: 
+
+--- bot.sannysoft.com ---
+JS error: canvas not supported (expected)

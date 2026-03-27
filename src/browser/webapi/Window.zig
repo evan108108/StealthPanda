@@ -43,6 +43,8 @@ const storage = @import("storage/storage.zig");
 const Element = @import("Element.zig");
 const CSSStyleProperties = @import("css/CSSStyleProperties.zig");
 const CustomElementRegistry = @import("CustomElementRegistry.zig");
+const Chrome = @import("Chrome.zig");
+const Notification = @import("Notification.zig");
 const Selection = @import("Selection.zig");
 
 const IS_DEBUG = builtin.mode == .Debug;
@@ -73,6 +75,8 @@ _current_event: ?*Event = null,
 _location: *Location,
 _timer_id: u30 = 0,
 _timers: std.AutoHashMapUnmanaged(u32, *ScheduleCallback) = .{},
+_chrome: Chrome = .{},
+_notification: Notification = .{},
 _custom_elements: CustomElementRegistry = .{},
 _scroll_pos: struct {
     x: u32,
@@ -165,6 +169,17 @@ pub fn getLocation(self: *const Window) *Location {
 
 pub fn getSelection(self: *const Window) *Selection {
     return &self._document._selection;
+}
+
+pub fn getChrome(self: *Window, page: *Page) ?*Chrome {
+    if (page._session.browser.app.config.isStealth()) {
+        return &self._chrome;
+    }
+    return null;
+}
+
+pub fn getNotification(self: *Window) *Notification {
+    return &self._notification;
 }
 
 pub fn setLocation(self: *Window, url: [:0]const u8, page: *Page) !void {
@@ -823,6 +838,8 @@ pub const JsApi = struct {
     pub const crypto = bridge.accessor(Window.getCrypto, null, .{});
     pub const CSS = bridge.accessor(Window.getCSS, null, .{});
     pub const customElements = bridge.accessor(Window.getCustomElements, null, .{});
+    pub const chrome = bridge.accessor(Window.getChrome, null, .{ .null_as_undefined = true });
+    pub const Notification = bridge.accessor(Window.getNotification, null, .{});
     pub const onload = bridge.accessor(Window.getOnLoad, Window.setOnLoad, .{});
     pub const onpageshow = bridge.accessor(Window.getOnPageShow, Window.setOnPageShow, .{});
     pub const onpopstate = bridge.accessor(Window.getOnPopState, Window.setOnPopState, .{});
@@ -871,6 +888,12 @@ pub const JsApi = struct {
 
     pub const innerWidth = bridge.property(1920, .{ .template = false });
     pub const innerHeight = bridge.property(1080, .{ .template = false });
+    pub const outerWidth = bridge.property(1920, .{ .template = false });
+    pub const outerHeight = bridge.property(1040, .{ .template = false });
+    pub const screenX = bridge.property(0, .{ .template = false });
+    pub const screenY = bridge.property(0, .{ .template = false });
+    pub const screenLeft = bridge.property(0, .{ .template = false });
+    pub const screenTop = bridge.property(0, .{ .template = false });
     pub const devicePixelRatio = bridge.property(1, .{ .template = false });
 
     // This should return a window-like object in specific conditions. Would be

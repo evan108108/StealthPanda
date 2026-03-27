@@ -149,6 +149,13 @@ pub fn logFilterScopes(self: *const Config) ?[]const log.Scope {
     };
 }
 
+pub fn isStealth(self: *const Config) bool {
+    return switch (self.mode) {
+        inline .serve, .fetch, .mcp => |opts| opts.common.stealth,
+        .help, .version => false,
+    };
+}
+
 pub fn userAgentSuffix(self: *const Config) ?[]const u8 {
     return switch (self.mode) {
         inline .serve, .fetch, .mcp => |opts| opts.common.user_agent_suffix,
@@ -259,6 +266,7 @@ pub const Fetch = struct {
 
 pub const Common = struct {
     obey_robots: bool = false,
+    stealth: bool = false,
     proxy_bearer_token: ?[:0]const u8 = null,
     http_proxy: ?[:0]const u8 = null,
     http_max_concurrent: ?u8 = null,
@@ -286,10 +294,30 @@ pub const HttpHeaders = struct {
     user_agent: [:0]const u8, // User agent value (e.g. "Lightpanda/1.0")
     user_agent_header: [:0]const u8,
     user_agent_allocated: bool, // true if user_agent was allocated by HttpHeaders
+    stealth: bool = false,
 
     proxy_bearer_header: ?[:0]const u8,
 
     pub fn init(allocator: Allocator, config: *const Config) !HttpHeaders {
+        // Stealth mode: override entire UA to Chrome 131 (takes priority over --user-agent / --user-agent-suffix)
+        if (config.isStealth()) {
+            const chrome_ua = try allocator.dupeZ(u8, "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36");
+            errdefer allocator.free(chrome_ua);
+            const ua_header = try std.fmt.allocPrintSentinel(allocator, "User-Agent: {s}", .{chrome_ua}, 0);
+            errdefer allocator.free(ua_header);
+            const proxy_bearer_header: ?[:0]const u8 = if (config.proxyBearerToken()) |token|
+                try std.fmt.allocPrintSentinel(allocator, "Proxy-Authorization: Bearer {s}", .{token}, 0)
+            else
+                null;
+            return .{
+                .user_agent = chrome_ua,
+                .user_agent_header = ua_header,
+                .user_agent_allocated = true,
+                .stealth = true,
+                .proxy_bearer_header = proxy_bearer_header,
+            };
+        }
+
         const ua_allocated = config.userAgentOverride() == null and config.userAgentSuffix() != null;
         const user_agent: [:0]const u8 = if (config.userAgentOverride()) |override|
             override
@@ -338,6 +366,12 @@ pub fn printUsageAndExit(self: *const Config, success: bool) void {
         \\--obey-robots
         \\                Fetches and obeys the robots.txt (if available) of the web pages
         \\                we make requests towards.
+        \\                Defaults to false.
+        \\
+        \\--stealth
+        \\                Enable stealth mode: spoof Chrome 131 on Windows in HTTP headers
+        \\                and JS APIs to bypass basic bot detection.
+        \\                Overrides --user-agent and --user-agent-suffix when set.
         \\                Defaults to false.
         \\
         \\--http-proxy    The HTTP proxy to use for all HTTP requests.
@@ -814,6 +848,11 @@ fn parseCommonArg(
 
     if (std.mem.eql(u8, "--obey-robots", opt) or std.mem.eql(u8, "--obey_robots", opt)) {
         common.obey_robots = true;
+        return true;
+    }
+
+    if (std.mem.eql(u8, "--stealth", opt)) {
+        common.stealth = true;
         return true;
     }
 
