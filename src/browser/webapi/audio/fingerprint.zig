@@ -36,6 +36,7 @@
 pub const SAMPLE_COUNT: u32 = 5000;
 
 pub const CHROME_AUDIO_SAMPLES: [SAMPLE_COUNT]f32 = blk: {
+    @setEvalBranchQuota(100_000);
     var samples: [SAMPLE_COUNT]f32 = [_]f32{0.0} ** SAMPLE_COUNT;
 
     // Phase 1: Oscillator ramp-up (samples 0-99)
